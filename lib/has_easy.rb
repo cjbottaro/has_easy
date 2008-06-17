@@ -1,6 +1,7 @@
 require 'has_easy/association_extension'
 require 'has_easy/configurator'
 require 'has_easy/definition'
+require 'has_easy/errors'
 require 'has_easy/helpers'
 require 'has_easy_thing'
 
@@ -46,12 +47,15 @@ module Izzle
         # check to make sure the context exists
         raise ArgumentError, "has_easy('#{context}') is not defined for class #{self.class}" \
           unless self.class.has_easy_configurators.has_key?(context)
+        configurator = self.class.has_easy_configurators[context]
         
         # check to make sure the name of the thing exists
         raise ArgumentError, "'#{name}' not defined for has_easy('#{context}') for class #{self.class}" \
-          unless self.class.has_easy_configurators[context].definitions.has_key?(name)
+          unless configurator.definitions.has_key?(name)
+        definition = configurator.definitions[name]
         
-        # TODO type_check, validate and preprocess value
+        # do preprocess here, type_check and validate can be done as AR validation in HasEasyThing
+        value = definition.preprocess.call(value) if definition.has_preprocess
         
         # invoke the assocation
         things = send(context)
@@ -78,10 +82,12 @@ module Izzle
         # check to make sure the context exists
         raise ArgumentError, "has_easy('#{context}') is not defined for class #{self.class}" \
           unless self.class.has_easy_configurators.has_key?(context)
+        configurator = self.class.has_easy_configurators[context]
         
         # check to make sure the name of the thing exists
         raise ArgumentError, "'#{name}' not defined for has_easy('#{context}') for class #{self.class}" \
-          unless self.class.has_easy_configurators[context].definitions.has_key?(name)
+          unless configurator.definitions.has_key?(name)
+        definition = configurator.definitions[name]
         
         # invoke the association
         things = send(context)
@@ -90,9 +96,17 @@ module Izzle
         thing = things.detect{ |thing| thing.name == name }
         
         # TODO return the default if the thing isn't found, but has a default
-        return nil if thing.blank?
-        
-        thing.value
+        if thing.blank?
+          if definition.has_default_through
+            send(definition.default_through).send("#{context}_#{name}")
+          elsif definition.has_default
+            definition.default
+          else
+            nil
+          end
+        else
+          thing.value
+        end
       end
       
     end

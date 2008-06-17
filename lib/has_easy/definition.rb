@@ -14,7 +14,7 @@ module Izzle
         
         if options.has_key?(:type_check)
           @has_type_check = true
-          @type_check = options[:type_check].instance_of?(Array) ? @type_check : [@type_check]
+          @type_check = options[:type_check].instance_of?(Array) ? options[:type_check] : [options[:type_check]]
         end
         
         if options.has_key?(:validate)
