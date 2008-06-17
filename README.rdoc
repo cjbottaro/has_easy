@@ -5,6 +5,7 @@ What's the difference between flags, preferences and options?  Nothing really, t
 This plugin has a ton of features (such as type checking, validation, default values, auto vivification, etc) that won't be documented until the plugin is finished (read: this plugin is not finished!!).
 
 ==Installation
+ git clone git://github.com/cjbottaro/has_easy.git vendor/plugins/has_easy
  script/generate has_easy_migration create_has_easy_things
  rake db:migrate
  cd vendor/plugins/has_easy
