@@ -167,6 +167,18 @@ class HasEasyTest < Test::Unit::TestCase
   
   def test_default_2
     assert_equal 'client default', @user.flags.default_test_2
+    
+    assert_equal @client, @user.client
+    @client.flags.default_test_2 = "not client default"
+    @client.flags.save
+    
+    assert_equal 'not client default', @client.flags_default_test_2
+    assert_equal 'not client default', @user.client(true).flags_default_test_2
+    assert_equal 'not client default', @user.flags.default_test_2
+    
+    @user = HasEasyUserTest.find(@user.id)
+    assert_equal 'not client default', @user.flags.default_test_2
+    
     @user.flags.default_test_2 = "funky town"
     assert_equal "funky town", @user.flags.default_test_2
     @user.flags.save
