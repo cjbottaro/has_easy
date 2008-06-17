@@ -1,0 +1,57 @@
+HasEasy
+=======
+
+Easy access and creation of "has many" relationships.
+
+What's the difference between flags, preferences and options?  Nothing really, they are just "has many" relationships.  So why should I install a separate plugin for each one?  This plugin can be used to add preferences, flags, options, etc to any model.
+
+This plugin has a ton of features (such as type checking, validation, default values, auto vivification, etc) that won't be documented until the plugin is finished (read: this plugin is not finished!!).
+
+Installation
+============
+script/generate has_easy_migration create_has_easy_things
+rake db:migrate
+cd vendor/plugins/has_easy
+rake test
+
+Example
+=======
+
+ class User < ActiveRecord::Base
+   has_easy :preferences do |p|
+     p.define :color
+     p.define :theme
+   end
+   has_easy :flags do |f|
+     f.define :is_admin
+     f.define :is_spammer
+   end
+ end
+
+ user = User.new
+ 
+ # hash like access
+ user.preferences[:color] = 'red'
+ user.preferences[:color] # => 'red'
+ 
+ # object like access
+  user.preferences.theme? # => false, shorthand for !!user.preferences.theme
+ user.preferences.theme = "savage thunder"
+ user.preferences.theme # => "savage thunder"
+ user.preferences.theme? # => true
+ 
+ # easy access for form inputs
+ user.flags_is_admin? # => false, shorthand for !!user.flags_is_admin
+ user.flags_is_admin = true
+ user.flags_is_admin # => true
+ user.flags_is_admin? # => true
+
+ # save user's preferences
+ user.preferences.save # will trickle down validation errors to user
+ user.errors.empty? # hopefully true
+ 
+ # save user's flags
+ user.flags.save! # will raise exception on validation errors
+
+
+Copyright (c) 2008 Christopher J. Bottaro, released under the MIT license
