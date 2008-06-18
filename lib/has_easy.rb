@@ -97,8 +97,8 @@ module Izzle
         
         # TODO return the default if the thing isn't found, but has a default
         if thing.blank?
-          if definition.has_default_through
-            send(definition.default_through).send("#{context}_#{name}")
+          if definition.has_default_through and respond_to?(definition.default_through) and (through = send(definition.default_through)).blank? == false
+            through.send("#{context}_#{name}")
           elsif definition.has_default
             definition.default
           else

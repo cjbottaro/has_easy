@@ -2,8 +2,6 @@ Easy access and creation of "has many" relationships.
 
 What's the difference between flags, preferences and options?  Nothing really, they are just "has many" relationships.  So why should I install a separate plugin for each one?  This plugin can be used to add preferences, flags, options, etc to any model.
 
-This plugin has a ton of features (such as type checking, validation, default values, auto vivification, etc) that won't be documented until the plugin is finished (read: this plugin is not finished!!).
-
 ==Installation
  git clone git://github.com/cjbottaro/has_easy.git vendor/plugins/has_easy
  script/generate has_easy_migration create_has_easy_things
@@ -31,7 +29,7 @@ This plugin has a ton of features (such as type checking, validation, default va
  user.preferences[:color] # => 'red'
  
  # object like access
-  user.preferences.theme? # => false, shorthand for !!user.preferences.theme
+ user.preferences.theme? # => false, shorthand for !!user.preferences.theme
  user.preferences.theme = "savage thunder"
  user.preferences.theme # => "savage thunder"
  user.preferences.theme? # => true
@@ -48,6 +46,153 @@ This plugin has a ton of features (such as type checking, validation, default va
  
  # save user's flags
  user.flags.save! # will raise exception on validation errors
+
+
+==Advanced Usage
+There are a lot of options that you can use with has_easy:
+* default values
+* inheriting default values from parent associations
+* type checking values
+* validating values
+* preprocessing values
+In this section, we'll go over how to use each option and explain why it's useful.
+
+===:default
+Very simple.  It does what you think it does.
+ class User < ActiveRecord::Base
+   has_easy :options do |p|
+     p.define :gender, :default => 'female'
+   end
+ end
+ 
+ User.new.options.gender # => 'female'
+
+===:default_through
+Allows the model to inherit it's default value from an association.
+ class Client < ActiveRecord::Base
+   has_many :users
+   has_easy :options do |p|
+     p.define :gender, :default => 'male'
+   end
+ end
+ class User < ActiveRecord::Base
+   belongs_to :client
+   has_easy :options do |p|
+     p.define :gender, :default_through => :client, :default => 'female'
+   end
+ end
+ 
+ client = Client.create
+ user = client.users.create
+ user.options.gender # => 'male'
+ 
+ client.options.gender = 'asexual'
+ client.options.save
+ user.client(true) # reload association
+ user.options.gender # => 'asexual'
+ 
+ User.new.options.gender => 'female'
+ 
+
+===:type_check
+Allows type checking of values (for people who are into that).
+  class User < ActiveRecord::Base
+    has_easy :prefs do |p|
+      p.define :theme, :type_check => String
+      p.define :dollars, :type_check => [Fixnum, Bignum]
+    end
+  end
+
+  user.prefs.theme = 123
+  user.prefs.save! # ActiveRecord::InvalidRecord exception raised with message like:
+                   # 'theme' for has_easy('prefs') failed type check
+
+  user.prefs.dollars = "hello world"
+  user.prefs.save
+  user.errors.empty? # => false
+  user.errors.on(:prefs) # => 'dollars' for has_easy('prefs') failed type check
+
+
+===:validate
+Make sure that values fit some kind of criteria.  If you use a Proc to do validation, there are two ways to specify failure:  returning false or raising a HasEasy::ValidationError.  The former is demonstrated here.
+  class User < ActiveRecord::Base
+    has_easy :prefs do |p|
+      p.define :foreground, :validate => ['red', 'blue', 'green']
+      p.define :background, :validate => Proc.new{ |value| %w[black white grey].include?(value) }
+    end
+  end
+
+  user.prefs.foreground = 'yellow'
+  user.prefs.save! # ActiveRecord::InvalidRecord exception raised with message like:
+                   # 'theme' for has_easy('prefs') failed validation
+
+  user.prefs.background = "pink"
+  user.prefs.save
+  user.errors.empty? # => false
+  user.errors.on(:prefs) # => 'background' for has_easy('prefs') failed validation
+
+
+===:preprocess
+Alter the value before it goes through type checking and/or validation.  This is useful when working with forms and boolean values.
+  class User < ActiveRecord::Base
+    has_easy :prefs do |p|
+      p.define :likes_cheese, :validate => [true, false],
+                              :preprocess => Proc.new{ |value| ['true', 'yes'].include?(value) ? true : false }
+    end
+  end
+
+  user.prefs.likes_cheese = 'yes'
+  user.prefs.likes_cheese # => true
+  user.prefs.save! # no exception
+
+
+==Using with Forms
+Suppose you have a <tt>has_easy</tt> field defined as a boolean like so.
+  class User < ActiveRecord::Base
+    has_easy :prefs do |p|
+      p.define :likes_cheese, :type_check => [TrueClass, FalseClass]
+    end
+  end
+You want to make it settable via using <tt>form_for</tt> a User.  There are two problems.
+
+First, how do you name the form field to correspond with <tt>user.prefs.likes_cheese</tt>?  This view and action code won't work:
+  <% form_for(@user) do |f| %>
+    <%= f.check_box 'user', 'prefs.likes_cheese', {}, 'true', 'false' %>
+  <% end %>
+  
+  user.update_attributes(params[:user])
+  user.prefs.save
+
+To solve this first problem, we simply use one of <tt>has_easy</tt>'s convenience methods for working with forms: <tt>user.prefs_likes_cheese</tt>, and we rewrite our view code like so.
+  <% form_for(@user) do |f| %>
+    <%= f.check_box 'user', 'prefs_likes_cheese', {}, 'true', 'false' %>
+  <% end %>
+
+The second problem is that <tt>likes_cheese</tt> is suppose to be a boolean value, but it comes across in the <tt>params</tt> hash as a String.  We can automatically convert the value using the <tt>:preprocess</tt> option when defining it.
+  class User < ActiveRecord::Base
+    has_easy :prefs do |p|
+      p.define :likes_cheese,
+               :type_check => [TrueClass, FalseClass]
+               :preprocess => Proc.new{ |value| value == 'true' }
+    end
+  end
+That will simply convert <tt>user.prefs.likes_cheese</tt> to TrueClass true if it was Sting 'true'.
+
+==Missing Features
+
+===Autovivification
+For when we want to use fields without having to define them first.
+  class User < ActiveRecord::Base
+    has_easy :prefs, :autovivify => true do |p|
+      p.define :likes_cheese, :default => 'yes'
+    end
+  end
+
+  user.prefs.likes_cheese => 'yes'
+  user.prefs.likes_pizza => nil
+  user.prefs.likes_pizza = true
+  user.prefs.likes_pizza => true
+
 
 
 Copyright (c) 2008 Christopher J. Bottaro, released under the MIT license

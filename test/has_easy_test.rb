@@ -10,7 +10,7 @@ end
 class HasEasyClientTest < ActiveRecord::Base
   has_many :users, :class_name => 'HasEasyUserTest', :foreign_key => 'client_id'
   has_easy :flags do |f|
-    f.define :default_test_2, :default => 'client default'
+    f.define :default_through_test_1, :default => 'client default'
   end
 end
 
@@ -32,7 +32,7 @@ class HasEasyUserTest < ActiveRecord::Base
   has_easy :flags do |f|
     f.define :admin
     f.define :default_test_1, :default => 'funky town'
-    f.define :default_test_2, :default => 'user default', :default_through => :client
+    f.define :default_through_test_1, :default => 'user default', :default_through => :client
   end
 end
 
@@ -157,6 +157,7 @@ class HasEasyTest < Test::Unit::TestCase
   end
   
   def test_default_1
+    assert_equal 'funky town', HasEasyUserTest.new.flags.default_test_1
     assert_equal 'funky town', @user.flags.default_test_1
     @user.flags.default_test_1 = "stupid town"
     assert_equal "stupid town", @user.flags.default_test_1
@@ -165,25 +166,20 @@ class HasEasyTest < Test::Unit::TestCase
     assert_equal "stupid town", @user.flags.default_test_1
   end
   
-  def test_default_2
-    assert_equal 'client default', @user.flags.default_test_2
+  def test_default_though_1
+    client = HasEasyClientTest.create
+    user = client.users.create
+    assert_equal 'client default', user.flags.default_through_test_1
     
-    assert_equal @client, @user.client
-    @client.flags.default_test_2 = "not client default"
-    @client.flags.save
+    client.flags.default_through_test_1 = 'not client default'
+    client.flags.save
+    user.client(true)
+    assert_equal 'not client default', user.flags.default_through_test_1
     
-    assert_equal 'not client default', @client.flags_default_test_2
-    assert_equal 'not client default', @user.client(true).flags_default_test_2
-    assert_equal 'not client default', @user.flags.default_test_2
+    user.flags.default_through_test_1 = 'not user default'
+    assert_equal 'not user default', user.flags.default_through_test_1
     
-    @user = HasEasyUserTest.find(@user.id)
-    assert_equal 'not client default', @user.flags.default_test_2
-    
-    @user.flags.default_test_2 = "funky town"
-    assert_equal "funky town", @user.flags.default_test_2
-    @user.flags.save
-    @user = HasEasyUserTest.find(@user.id)
-    assert_equal "funky town", @user.flags.default_test_2
+    assert_equal 'user default', HasEasyUserTest.new.flags.default_through_test_1
   end
   
 end
