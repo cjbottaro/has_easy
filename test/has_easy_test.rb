@@ -17,7 +17,7 @@ end
 class HasEasyUserTest < ActiveRecord::Base
   belongs_to :client, :class_name => 'HasEasyClientTest', :foreign_key => 'client_id'
   
-  has_easy :preferences do |p|
+  has_easy :preferences, :alias => :prefs do |p|
     p.define :color
     p.define :theme, :type_check => String
     p.define :validate_test_1, :validate => [true, 'true', 1, 't']
@@ -93,6 +93,14 @@ class HasEasyTest < Test::Unit::TestCase
     @user.preferences[:color] = 'blue'
     assert_equal 'blue', @user.preferences[:color]
     assert_equal 1, HasEasyThing.count(:conditions => { :model_type => @user.class.name, :model_id => @user.id })
+  end
+  
+  def test_alias
+    @user.preferences.theme = "savage thunder"
+    assert_equal @user.preferences[:theme], @user.prefs[:theme]
+    assert_equal @user.preferences.theme, @user.prefs.theme
+    assert_equal @user.preferences_theme, @user.prefs_theme
+    assert_equal @user.preferences_theme?, @user.prefs_theme?
   end
   
   def test_type_check

@@ -28,7 +28,9 @@ module Izzle
         # don't let the user redefine a context
         raise ArgumentError, "class #{self} already has_easy('#{context}')" if self.has_easy_configurators.has_key?(context)
         
-        configurator = Configurator.new(self, context)
+        
+        
+        configurator = Configurator.new(self, context, options)
         yield configurator
         configurator.do_metaprogramming_magic_aka_define_methods
         has_easy_configurators[context] = configurator

@@ -50,12 +50,31 @@ What's the difference between flags, preferences and options?  Nothing really, t
 
 ==Advanced Usage
 There are a lot of options that you can use with has_easy:
+* aliasing
 * default values
 * inheriting default values from parent associations
 * type checking values
 * validating values
 * preprocessing values
 In this section, we'll go over how to use each option and explain why it's useful.
+
+===:alias and :aliases
+These options go on the has_easy method call and specify alternate ways of invoking the association.
+  class User < ActiveRecord::Base
+    has_easy :preferences, :aliases => [:prefs, :options] do |p|
+      p.define :likes_cheese
+    end
+    has_easy :flags, :alias => :status do |p|
+      p.define :is_admin
+    end
+  end
+
+  user.preferences.likes_cheese = 'yes'
+  user.prefs.likes_cheese => 'yes'
+  user.options_likes_cheese => 'yes'
+  user.prefs[:likes_cheese] => 'yes'
+  user.options.likes_cheese? => true
+  ...etc...
 
 ===:default
 Very simple.  It does what you think it does.
