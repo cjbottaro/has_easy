@@ -1,2 +1,6 @@
+06/19/2008
+* added validation via naming a method with a Symbol
+* added support for custom validation error messages
+
 06/18/2008
 * added :alias and :aliases options to has_easy

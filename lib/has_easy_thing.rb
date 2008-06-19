@@ -16,15 +16,24 @@ class HasEasyThing < ActiveRecord::Base
   
   def validate_validate
     return unless definition.has_validate
+    success = true
+    
     if definition.validate.instance_of?(Array) and definition.validate.include?(value) == false
-      self.errors.add(:value, "has_easy validation failed for '#{self.name}'")
+      success = false
+    elsif definition.validate.instance_of?(Symbol)
+      success = model_cache.send(definition.validate, value)
     elsif definition.validate.instance_of?(Proc)
       begin
-        failed = definition.validate.call(value) == false
+        success = definition.validate.call(value)
       rescue HasEasy::ValidationError
-        failed = true
+        success = false
       end
-      self.errors.add(:value, "has_easy validation failed for '#{self.name}'") if failed
+    end
+    
+    if success == false
+      self.errors.add(:value, "has_easy validation failed for '#{self.name}'")
+    elsif success.instance_of?(Array)
+      success.each{ |message| self.errors.add(:value, message) }
     end
   end
   

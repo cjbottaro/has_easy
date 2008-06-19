@@ -27,12 +27,17 @@ class HasEasyUserTest < ActiveRecord::Base
     p.define :validate_test_3, :validate => Proc.new { |value|
       raise HasEasy::ValidationError unless [true, 'true', 1, 't'].include?(value)
     }
+    p.define :validate_test_4, :validate => :validate_test_4
     p.define :preprocess_test_1, :preprocess => Proc.new { |value| [true, 'true', 1, 't'].include?(value) ? true : false }
   end
   has_easy :flags do |f|
     f.define :admin
     f.define :default_test_1, :default => 'funky town'
     f.define :default_through_test_1, :default => 'user default', :default_through => :client
+  end
+  
+  def validate_test_4(value)
+    ["1one", "2two"]
   end
 end
 
@@ -154,6 +159,15 @@ class HasEasyTest < Test::Unit::TestCase
     assert_raise(ActiveRecord::RecordInvalid){ @user.preferences.save! }
     assert !@user.preferences.save
     assert !@user.errors.empty?
+  end
+  
+  def test_validate_4
+    @user.preferences.validate_test_4 = "blah"
+    assert_raise(ActiveRecord::RecordInvalid){ @user.preferences.save! }
+    @user.preferences.save
+    assert 2, @user.errors.on(:preferences).length
+    assert '1one', @user.errors.on(:preferences)[0]
+    assert '2two', @user.errors.on(:preferences)[1]
   end
   
   def test_preprocess_1

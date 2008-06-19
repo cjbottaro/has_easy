@@ -133,11 +133,18 @@ Allows type checking of values (for people who are into that).
 
 
 ===:validate
-Make sure that values fit some kind of criteria.  If you use a Proc to do validation, there are two ways to specify failure:  returning false or raising a HasEasy::ValidationError.  The former is demonstrated here.
+Make sure that values fit some kind of criteria.  If you use a Proc or name a method with a symbol to do validation, there are three ways to specify failure:
+1. return false
+2. raise a HasEasy::ValidationError
+3. return an array of custom validation error messages
   class User < ActiveRecord::Base
     has_easy :prefs do |p|
       p.define :foreground, :validate => ['red', 'blue', 'green']
       p.define :background, :validate => Proc.new{ |value| %w[black white grey].include?(value) }
+      p.define :midground,  :validate => :midground_validator
+    end
+    def midground_validator(value)
+      return ["msg1", msg2] unless %w[yellow brown purple].include?(value)
     end
   end
 
@@ -147,8 +154,13 @@ Make sure that values fit some kind of criteria.  If you use a Proc to do valida
 
   user.prefs.background = "pink"
   user.prefs.save
-  user.errors.empty? # => false
-  user.errors.on(:prefs) # => 'background' for has_easy('prefs') failed validation
+  user.errors.empty? => false
+  user.errors.on(:prefs) => 'background' for has_easy('prefs') failed validation
+  
+  user.prefs.midground = "black"
+  user.prefs.save
+  user.errors.on(:prefs)[0] => "msg1"
+  user.errors.on(:prefs)[1] => "msg2"
 
 
 ===:preprocess
