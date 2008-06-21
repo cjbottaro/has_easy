@@ -18,6 +18,18 @@ module Izzle
         proxy_owner.get_has_easy_thing(proxy_reflection.name, name)
       end
       
+      def valid?
+        valid = true
+        proxy_target.each do |thing|
+          thing.model_cache = proxy_owner
+          unless thing.valid?
+            thing.errors.each{ |attr, msg| proxy_owner.errors.add(proxy_reflection.name, msg) }
+            valid = false
+          end
+        end
+        valid
+      end
+      
       private
       
       def do_save(with_bang)

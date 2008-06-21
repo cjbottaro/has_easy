@@ -7,6 +7,8 @@ end
 ActiveRecord::Base.connection.create_table :has_easy_client_tests, :force => true do
 end
 
+HasEasyThing.delete_all
+
 class HasEasyClientTest < ActiveRecord::Base
   has_many :users, :class_name => 'HasEasyUserTest', :foreign_key => 'client_id'
   has_easy :flags do |f|
@@ -16,7 +18,8 @@ end
 
 class HasEasyUserTest < ActiveRecord::Base
   belongs_to :client, :class_name => 'HasEasyClientTest', :foreign_key => 'client_id'
-  
+  cattr_accessor :count1, :count2
+  @@count1, @@count2 = 0, 0
   has_easy :preferences, :alias => :prefs do |p|
     p.define :color
     p.define :theme, :type_check => String
@@ -34,10 +37,16 @@ class HasEasyUserTest < ActiveRecord::Base
     f.define :admin
     f.define :default_test_1, :default => 'funky town'
     f.define :default_through_test_1, :default => 'user default', :default_through => :client
+    f.define :default_dynamic_test_1, :default_dynamic => :default_dynamic_test_1
+    f.define :default_dynamic_test_2, :default_dynamic => Proc.new{ |user| user.class.count2 += 1 }
   end
   
   def validate_test_4(value)
     ["1one", "2two"]
+  end
+  
+  def default_dynamic_test_1
+    self.class.count1 += 1
   end
 end
 
@@ -202,6 +211,16 @@ class HasEasyTest < Test::Unit::TestCase
     assert_equal 'not user default', user.flags.default_through_test_1
     
     assert_equal 'user default', HasEasyUserTest.new.flags.default_through_test_1
+  end
+  
+  def test_default_dynamic_1
+    assert_equal 1, @user.flags.default_dynamic_test_1
+    assert_equal 2, @user.flags.default_dynamic_test_1
+  end
+  
+  def test_default_dynamic_2
+    assert_equal 1, @user.flags.default_dynamic_test_2
+    assert_equal 2, @user.flags.default_dynamic_test_2
   end
   
 end

@@ -97,10 +97,19 @@ module Izzle
         # try to find what they are looking for
         thing = things.detect{ |thing| thing.name == name }
         
-        # TODO return the default if the thing isn't found, but has a default
+        # if the thing isn't found, try to fallback on a default
         if thing.blank?
+          # TODO break all these nested if statements out into helper methods, i like prettier code
+          # TODO raise an exception if we don't respond to default_through or the resulting object doesn't respond to the context
           if definition.has_default_through and respond_to?(definition.default_through) and (through = send(definition.default_through)).blank? == false
-            through.send("#{context}_#{name}")
+            through.send(context)[name]
+          elsif definition.has_default_dynamic
+            if definition.default_dynamic.instance_of?(Proc)
+              definition.default_dynamic.call(self)
+            else
+              # TODO raise an exception if we don't respond to default_dynamic
+              send(definition.default_dynamic)
+            end
           elsif definition.has_default
             definition.default
           else

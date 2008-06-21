@@ -7,6 +7,7 @@ module Izzle
       attr_accessor :has_validate,        :validate
       attr_accessor :has_default,         :default
       attr_accessor :has_default_through, :default_through
+      attr_accessor :has_default_dynamic, :default_dynamic
       attr_accessor :has_preprocess,      :preprocess
       
       def initialize(name, options = {})
@@ -30,6 +31,11 @@ module Izzle
         if options.has_key?(:default_through)
           @has_default_through = true
           @default_through = options[:default_through]
+        end
+        
+        if options.has_key?(:default_dynamic)
+          @has_default_dynamic = true
+          @default_dynamic = options[:default_dynamic]
         end
         
         if options.has_key?(:preprocess)

@@ -53,6 +53,7 @@ There are a lot of options that you can use with has_easy:
 * aliasing
 * default values
 * inheriting default values from parent associations
+* calculated default values
 * type checking values
 * validating values
 * preprocessing values
@@ -112,6 +113,32 @@ Allows the model to inherit it's default value from an association.
  
  User.new.options.gender => 'female'
  
+
+===:default_dynamic
+Allows for calculated default values.
+  class User < ActiveRecord::Base
+    has_easy 'prefs' do |t|
+      t.define :likes_cheese, :default_dynamic => :defaults_to_like_cheese
+      t.define :is_dumb, :default_dynamic => Proc.new{ |user| user.dumb_post_count > 10 }
+    end
+  
+    def defaults_to_like_cheese
+      cheesy_post_count > 10
+    end
+  end
+
+  user = User.new :cheesy_post_count => 5
+  user.prefs.likes_cheese? => false
+  
+  user = User.new :cheesy_post_count => 11
+  user.prefs.likes_cheese? => true
+  
+  user = User.new :dumb_post_count => 5
+  user.prefs.is_dumb? => false
+  
+  user = User.new :dumb_post_count => 11
+  user.prefs.is_dumb? => true
+
 
 ===:type_check
 Allows type checking of values (for people who are into that).
