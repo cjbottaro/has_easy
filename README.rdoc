@@ -160,7 +160,7 @@ Allows type checking of values (for people who are into that).
 
 
 ===:validate
-Make sure that values fit some kind of criteria.  If you use a Proc or name a method with a symbol to do validation, there are three ways to specify failure:
+Make sure that values fit some kind of criteria.  If you use a Proc or name a method with a Symbol to do validation, there are three ways to specify failure:
 1. return false
 2. raise a HasEasy::ValidationError
 3. return an array of custom validation error messages
@@ -252,5 +252,34 @@ For when we want to use fields without having to define them first.
   user.prefs.likes_pizza => true
 
 
+===Scoping to other models
+Ehh, can't think of a way to describe this other than example.  Also, the syntax is completely up in the air, there are so many different ways to do it, I have no idea which way to go with.  Please tell me your ideas.
+  class User < ActiveRecord::Base
+    has_easy :prefs do |p|
+      p.define :subscribed, :scoped => Post
+      p.define :color, :scoped => [Car, Motorcycle] # polymorphic but must be Car or Motorcycle
+      p.define :hair_color, :scoped => true # polymorphic no restrictions
+      p.define :likes_cheese, :scoped => [Food, NilClass] # scoped and not scoped at the same time
+    end
+  end
+  
+  post = Post.find :first, :conditions => {:topic => 'rails'}
+  me.prefs.subscribed? :to => post
+  => true
+  
+  vette = Car.find :first, :conditions => {:model => 'corvette'}
+  me.prefs.color :for => vette
+  => 'black'
+  
+  gf = Girl.find :first, :conditions => {:name => 'aimee'}
+  me.prefs.hair_color :on => gf
+  => 'brown'
+  
+  watermelon = Food.find :first, :conditions => {:kind => 'watermelon'}
+  my.prefs.likes_cheese? # not scoped; do I like cheese in general?
+  => true
+  my.prefs.likes_cheese? :on => watermelon # scoped; do I like cheese on watermelon?
+  => false
 
-Copyright (c) 2008 Christopher J. Bottaro, released under the MIT license
+
+Copyright (c) 2008 Christopher J. Bottaro <cjbottaro@alumni.cs.utexas.edu>, released under the MIT license
