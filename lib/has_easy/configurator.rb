@@ -31,13 +31,13 @@ module Izzle
           
           easy_accessors << <<-end_eval
             def #{@name}_#{definition.name}=(value)
-              set_has_easy_thing('#{@name}', '#{definition.name}', value)
+              set_has_easy_thing('#{@name}', '#{definition.name}', value, true)
             end
             def #{@name}_#{definition.name}
-              get_has_easy_thing('#{@name}', '#{definition.name}')
+              get_has_easy_thing('#{@name}', '#{definition.name}', true)
             end
             def #{@name}_#{definition.name}?
-              !!get_has_easy_thing('#{@name}', '#{definition.name}')
+              !!get_has_easy_thing('#{@name}', '#{definition.name}', true)
             end
           end_eval
           

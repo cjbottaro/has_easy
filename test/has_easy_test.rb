@@ -32,6 +32,11 @@ class HasEasyUserTest < ActiveRecord::Base
     }
     p.define :validate_test_4, :validate => :validate_test_4
     p.define :preprocess_test_1, :preprocess => Proc.new { |value| [true, 'true', 1, 't'].include?(value) ? true : false }
+    p.define :postprocess_test_1, :postprocess => Proc.new { |value| [true, 'true', 1, 't'].include?(value) ? true : false }
+    p.define :form_usage_test, :default => false,
+                               :type_check => [TrueClass, FalseClass],
+                               :preprocess => Proc.new{ |value| value == 'true' },
+                               :postprocess => Proc.new{ |value| value ? 'true' : 'false' }
   end
   has_easy :flags do |f|
     f.define :admin
@@ -181,10 +186,28 @@ class HasEasyTest < Test::Unit::TestCase
   
   def test_preprocess_1
     @user.preferences.preprocess_test_1 = "blah"
+    assert_equal "blah", @user.preferences.preprocess_test_1
+    assert_equal "blah", @user.preferences_preprocess_test_1
+    @user.preferences_preprocess_test_1 = "blah"
     assert_equal false, @user.preferences.preprocess_test_1
+    assert_equal false, @user.preferences_preprocess_test_1
     
     @user.preferences.preprocess_test_1 = "true"
+    assert_equal "true", @user.preferences.preprocess_test_1
+    assert_equal "true", @user.preferences_preprocess_test_1
+    @user.preferences_preprocess_test_1 = "true"
     assert_equal true, @user.preferences.preprocess_test_1
+    assert_equal true, @user.preferences_preprocess_test_1
+  end
+  
+  def test_postprocess_1
+    @user.preferences.postprocess_test_1 = "blah"
+    assert_equal "blah", @user.preferences.postprocess_test_1
+    assert_equal false, @user.preferences_postprocess_test_1
+    
+    @user.preferences.postprocess_test_1 = "true"
+    assert_equal "true", @user.preferences.postprocess_test_1
+    assert_equal true, @user.preferences_postprocess_test_1
   end
   
   def test_default_1
@@ -221,6 +244,29 @@ class HasEasyTest < Test::Unit::TestCase
   def test_default_dynamic_2
     assert_equal 1, @user.flags.default_dynamic_test_2
     assert_equal 2, @user.flags.default_dynamic_test_2
+  end
+  
+  def test_form_usage
+    assert_equal false, @user.prefs.form_usage_test
+    assert_equal 'false', @user.prefs_form_usage_test
+    
+    params = { :person => {:prefs_form_usage_test => 'true'} }
+    assert @user.update_attributes(params[:person])
+    assert_equal true, @user.prefs.form_usage_test
+    assert_equal 'true', @user.prefs_form_usage_test
+    @user.preferences.save!
+    @user = @user.class.find(@user.id)
+    assert_equal true, @user.prefs.form_usage_test
+    assert_equal 'true', @user.prefs_form_usage_test
+    
+    params = { :person => {:prefs_form_usage_test => 'false'} }
+    assert @user.update_attributes(params[:person])
+    assert_equal false, @user.prefs.form_usage_test
+    assert_equal 'false', @user.prefs_form_usage_test
+    @user.preferences.save!
+    @user = @user.class.find(@user.id)
+    assert_equal false, @user.prefs.form_usage_test
+    assert_equal 'false', @user.prefs_form_usage_test
   end
   
 end

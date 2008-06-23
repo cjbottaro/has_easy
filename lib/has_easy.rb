@@ -40,7 +40,7 @@ module Izzle
     
     module InstanceMethods
       
-      def set_has_easy_thing(context, name, value)
+      def set_has_easy_thing(context, name, value, do_preprocess = false)
         context = Helpers.normalize(context)
         name = Helpers.normalize(name)
         
@@ -57,7 +57,7 @@ module Izzle
         definition = configurator.definitions[name]
         
         # do preprocess here, type_check and validate can be done as AR validation in HasEasyThing
-        value = definition.preprocess.call(value) if definition.has_preprocess
+        value = definition.preprocess.call(value) if do_preprocess and definition.has_preprocess
         
         # invoke the assocation
         things = send(context)
@@ -77,7 +77,7 @@ module Izzle
         
       end
       
-      def get_has_easy_thing(context, name)
+      def get_has_easy_thing(context, name, do_postprocess = false)
         context = Helpers.normalize(context)
         name = Helpers.normalize(name)
         
@@ -102,22 +102,25 @@ module Izzle
           # TODO break all these nested if statements out into helper methods, i like prettier code
           # TODO raise an exception if we don't respond to default_through or the resulting object doesn't respond to the context
           if definition.has_default_through and respond_to?(definition.default_through) and (through = send(definition.default_through)).blank? == false
-            through.send(context)[name]
+            value = through.send(context)[name]
           elsif definition.has_default_dynamic
             if definition.default_dynamic.instance_of?(Proc)
-              definition.default_dynamic.call(self)
+              value = definition.default_dynamic.call(self)
             else
               # TODO raise an exception if we don't respond to default_dynamic
-              send(definition.default_dynamic)
+              value = send(definition.default_dynamic)
             end
           elsif definition.has_default
-            definition.default
+            value = definition.default
           else
-            nil
+            value = nil
           end
         else
-          thing.value
+          value = thing.value
         end
+        
+        value = definition.postprocess.call(value) if do_postprocess and definition.has_postprocess
+        value
       end
       
     end

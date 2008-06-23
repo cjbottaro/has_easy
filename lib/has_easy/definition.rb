@@ -9,6 +9,7 @@ module Izzle
       attr_accessor :has_default_through, :default_through
       attr_accessor :has_default_dynamic, :default_dynamic
       attr_accessor :has_preprocess,      :preprocess
+      attr_accessor :has_postprocess,     :postprocess
       
       def initialize(name, options = {})
         @name = name
@@ -41,6 +42,11 @@ module Izzle
         if options.has_key?(:preprocess)
           @has_preprocess = true
           @preprocess = options[:preprocess]
+        end
+        
+        if options.has_key?(:postprocess)
+          @has_postprocess = true
+          @postprocess = options[:postprocess]
         end
         
       end

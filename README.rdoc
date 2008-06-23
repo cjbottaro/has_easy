@@ -191,7 +191,7 @@ Make sure that values fit some kind of criteria.  If you use a Proc or name a me
 
 
 ===:preprocess
-Alter the value before it goes through type checking and/or validation.  This is useful when working with forms and boolean values.
+Alter the value before it goes through type checking and/or validation.  This is useful when working with forms and boolean values.  CAREFUL!!  This option only applies to the underscore accessors, i.e. <tt>prefs_likes_cheese=</tt>, not <tt>prefs.likes_cheese=</tt> or <tt>prefs[:likes_cheese]=</tt>.
   class User < ActiveRecord::Base
     has_easy :prefs do |p|
       p.define :likes_cheese, :validate => [true, false],
@@ -199,42 +199,61 @@ Alter the value before it goes through type checking and/or validation.  This is
     end
   end
 
-  user.prefs.likes_cheese = 'yes'
-  user.prefs.likes_cheese # => true
+  user.prefs.likes_cheese = 'yes' # :preprocess NOT invoked; it only applies to underscore accessors!!
+  user.prefs.likes_cheese
+  => 'yes'
+  user.prefs.save! # exception, validation failed
+  
+  user.prefs_likes_cheese = 'yes' # :preprocess invoked
+  user.prefs.likes_cheese
+  => true
   user.prefs.save! # no exception
 
 
-==Using with Forms
-Suppose you have a <tt>has_easy</tt> field defined as a boolean like so.
+===:postprocess
+Alter the value when it is read.  This is useful when working with forms and boolean values.  CAREFUL!!  This option only applies to the underscore accessors, i.e. <tt>prefs_likes_cheese</tt>, not <tt>prefs.likes_cheese</tt> or <tt>prefs[:likes_cheese]</tt>.
   class User < ActiveRecord::Base
     has_easy :prefs do |p|
-      p.define :likes_cheese, :type_check => [TrueClass, FalseClass]
+      p.define :likes_cheese, :validate => [true, false],
+                              :postprocess => Proc.new{ |value| value ? 'yes' : 'no' }
     end
   end
-You want to make it settable via using <tt>form_for</tt> a User.  There are two problems.
 
-First, how do you name the form field to correspond with <tt>user.prefs.likes_cheese</tt>?  This view and action code won't work:
+  user.prefs.likes_cheese = true
+  user.prefs.likes_cheese # :postprocess NOT invoked, it only applies to underscore accessors
+  => true
+  user.prefs_likes_cheese # :postprocess invoked
+  => 'yes'
+
+==Using with Forms
+Suppose you have a <tt>has_easy</tt> field defined as a boolean and you want to use it with a checkbox in <tt>form_for</tt>.
+
+  (model)
+
+  class User < ActiveRecord::Base
+    has_easy :prefs do |p|
+      p.define :likes_cheese, :type_check => [TrueClass, FalseClass],
+                              :preprocess => Proc.new{ |value| value == 'yes' },
+                              :postprocess => Proc.new{ |value| value ? 'yes' : 'no' }
+    end
+  end
+  
+  (view)
+  
   <% form_for(@user) do |f| %>
-    <%= f.check_box 'user', 'prefs.likes_cheese', {}, 'true', 'false' %>
+    <%= f.check_box 'user', 'prefs_likes_cheese', {}, 'yes', 'no' %> # invokes @user.prefs_likes_cheese which does the :postprocess
   <% end %>
   
-  user.update_attributes(params[:user])
-  user.prefs.save
-
-To solve this first problem, we simply use one of <tt>has_easy</tt>'s convenience methods for working with forms: <tt>user.prefs_likes_cheese</tt>, and we rewrite our view code like so.
-  <% form_for(@user) do |f| %>
-    <%= f.check_box 'user', 'prefs_likes_cheese', {}, 'true', 'false' %>
-  <% end %>
-
-The second problem is that <tt>likes_cheese</tt> is suppose to be a boolean value, but it comes across in the <tt>params</tt> hash as a String.  We can automatically convert the value using the <tt>:preprocess</tt> option when defining it.
-  class User < ActiveRecord::Base
-    has_easy :prefs do |p|
-      p.define :likes_cheese,
-               :type_check => [TrueClass, FalseClass]
-               :preprocess => Proc.new{ |value| value == 'true' }
-    end
-  end
-That will simply convert <tt>user.prefs.likes_cheese</tt> to TrueClass true if it was Sting 'true'.
+  (controller)
+  
+  @user.update_attributes(params[:user]) # invokes @user.prefs_likes_cheese= which does the :preprocess
+  @user.prefs.save
+  @user.prefs.likes_cheese
+  => true or false
+  @user.prefs_likes_cheese # remember, only underscore accessors invoke the :preprocess and :postprocess options
+  => 'yes' or 'no'
+  
+The general idea is that we make the form use <tt>prefs_likes_cheese=</tt> and <tt>prefs_likes_cheese</tt> accessors which in turn use the :preprocess and :postprocess options.  Then in our normal code, we use <tt>prefs.likes_cheese</tt> or <tt>prefs[:likes_cheese]</tt> accessors to get our expected boolean values.
 
 ==Missing Features
 
