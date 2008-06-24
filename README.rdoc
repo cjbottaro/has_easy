@@ -6,6 +6,7 @@ What's the difference between flags, preferences and options?  Nothing really, t
  git clone git://github.com/cjbottaro/has_easy.git vendor/plugins/has_easy
  script/generate has_easy_migration create_has_easy_things
  rake db:migrate
+ rake db:test:prepare
  cd vendor/plugins/has_easy
  rake test
 

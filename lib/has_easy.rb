@@ -68,6 +68,7 @@ module Izzle
           thing = HasEasyThing.new :context => context,
                                    :name => name,
                                    :value => value
+          thing.set_model_target(self) # for the bug regarding thing's validation trying to invoke the 'model' assocation when self is a new record
           send("#{context}").send("<<", thing)
         else
           thing.value = value

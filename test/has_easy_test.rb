@@ -178,7 +178,14 @@ class HasEasyTest < Test::Unit::TestCase
   def test_validate_4
     @user.preferences.validate_test_4 = "blah"
     assert_raise(ActiveRecord::RecordInvalid){ @user.preferences.save! }
-    @user.preferences.save
+    assert !@user.preferences.save
+    assert 2, @user.errors.on(:preferences).length
+    assert '1one', @user.errors.on(:preferences)[0]
+    assert '2two', @user.errors.on(:preferences)[1]
+    
+    # nasty bug when the parent is a new record
+    user = @user.class.new :preferences_validate_test_4 => "blah"
+    assert !user.save
     assert 2, @user.errors.on(:preferences).length
     assert '1one', @user.errors.on(:preferences)[0]
     assert '2two', @user.errors.on(:preferences)[1]
