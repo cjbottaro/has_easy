@@ -44,6 +44,7 @@ class HasEasyUserTest < ActiveRecord::Base
     f.define :default_through_test_1, :default => 'user default', :default_through => :client
     f.define :default_dynamic_test_1, :default_dynamic => :default_dynamic_test_1
     f.define :default_dynamic_test_2, :default_dynamic => Proc.new{ |user| user.class.count2 += 1 }
+    f.define :default_reference, :default => [1, 2, 3] # demonstrates a bug found by swaltered
   end
   
   def validate_test_4(value)
@@ -251,6 +252,16 @@ class HasEasyTest < Test::Unit::TestCase
   def test_default_dynamic_2
     assert_equal 1, @user.flags.default_dynamic_test_2
     assert_equal 2, @user.flags.default_dynamic_test_2
+  end
+  
+  # This is from a bug that swalterd found that has to do with how has_easy assigns default values.
+  # Each thing shares the same default value, so changing it for one will change it for everyone.
+  # The fix is to clone (if possible) the default value when a new HasEasyThing is created.
+  def test_default_reference
+    v = @user.flags.default_reference[0]
+    @user.flags.default_reference[0] = rand(10) + 10
+    new_user = HasEasyUserTest.new
+    assert_equal v, new_user.flags_default_reference[0]
   end
   
   def test_form_usage
