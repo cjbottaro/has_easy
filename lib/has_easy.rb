@@ -112,11 +112,7 @@ module Izzle
               value = send(definition.default_dynamic)
             end
           elsif definition.has_default
-            begin # BUGFIX test_default_reference
-              value = definition.default.clone
-            rescue TypeError # looking for something like TypeError: can't clone TrueClass
-              value = definition.default
-            end
+            value = Marshal::load(Marshal.dump(definition.default)) # BUGFIX deep cloning default values
           else
             value = nil
           end
