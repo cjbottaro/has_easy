@@ -192,6 +192,13 @@ class HasEasyTest < Test::Unit::TestCase
     assert '2two', @user.errors.on(:preferences)[1]
   end
   
+  def test_validate_4_has_easy_errors_added_to_base
+    @user.preferences.validate_test_4 = "blah"
+    @user.preferences.save
+    @preference = @user.preferences.detect { |pref|  !pref.errors.empty? }
+    assert_equal ['1one','2two'], @preference.errors.full_messages 
+  end
+  
   def test_preprocess_1
     @user.preferences.preprocess_test_1 = "blah"
     assert_equal "blah", @user.preferences.preprocess_test_1
